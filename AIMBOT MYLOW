@@ -1,0 +1,283 @@
+local fov = 50 -- Reduced FOV radius for less sensitivity
+local maxLockDistanceShort = 100 -- Short distance to lock onto a target
+local maxLockDistanceLong = 250 -- Long distance to lock onto a target
+local maxLockDistance = maxLockDistanceShort -- Default to short distance
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local Cam = game.Workspace.CurrentCamera
+
+-- Initialize FOV ring
+local FOVring = Drawing.new("Circle")
+FOVring.Visible = true
+FOVring.Thickness = 2
+FOVring.Color = Color3.fromRGB(128, 0, 128) -- Purple color
+FOVring.Filled = false
+FOVring.Radius = fov
+FOVring.Position = Cam.ViewportSize / 2
+
+-- Toggle variables
+local isFOVEnabled = true
+local isAimingEnabled = true
+
+local function updateDrawings()
+    if FOVring then
+        FOVring.Position = Cam.ViewportSize / 2
+    end
+end
+
+local function onKeyDown(input)
+    if input.KeyCode == Enum.KeyCode.Delete then
+        RunService:UnbindFromRenderStep("FOVUpdate")
+        FOVring:Remove()
+    end
+end
+
+UserInputService.InputBegan:Connect(onKeyDown)
+
+local function lookAt(target)
+    if target then
+        local lookVector = (target - Cam.CFrame.Position).unit
+        local newCFrame = CFrame.new(Cam.CFrame.Position, Cam.CFrame.Position + lookVector)
+        Cam.CFrame = newCFrame
+    end
+end
+
+local function getClosestPlayerInFOV(trg_part)
+    local nearest = nil
+    local last = math.huge
+    local playerMousePos = Cam.ViewportSize / 2
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer and player.Character then
+            local part = player.Character:FindFirstChild(trg_part)
+            if part then
+                local ePos, isVisible = Cam:WorldToViewportPoint(part.Position)
+                local distance = (Vector2.new(ePos.x, ePos.y) - playerMousePos).Magnitude
+                local worldDistance = (part.Position - Cam.CFrame.Position).Magnitude
+
+                if distance < last and isVisible and distance < fov and worldDistance < maxLockDistance then
+                    last = distance
+                    nearest = player
+                end
+            end
+        end
+    end
+
+    return nearest
+end
+
+RunService.RenderStepped:Connect(function()
+    if isFOVEnabled then
+        updateDrawings()
+        FOVring.Visible = true
+    else
+        FOVring.Visible = false
+    end
+    
+    if isAimingEnabled then
+        local closest = getClosestPlayerInFOV("Head")
+        if closest and closest.Character and closest.Character:FindFirstChild("Head") then
+            lookAt(closest.Character.Head.Position)
+        end
+    end
+end)
+
+-- Create UI for On/Off button
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 120, 0, 50)
+toggleButton.Position = UDim2.new(0.05, 0, 0.05, 0) -- Positioned higher
+toggleButton.Text = "Disable Aim"
+toggleButton.TextSize = 14
+toggleButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.BackgroundTransparency = 0.7 -- 70% transparent
+toggleButton.Parent = screenGui
+
+toggleButton.MouseButton1Click:Connect(function()
+    isAimingEnabled = not isAimingEnabled
+    if isAimingEnabled then
+        toggleButton.Text = "Disable Aim"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Green for enabled
+    else
+        toggleButton.Text = "Enable Aim"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Red for disabled
+    end
+end)
+
+-- Create UI for Distance buttons
+local shortDistanceButton = Instance.new("TextButton")
+shortDistanceButton.Size = UDim2.new(0, 120, 0, 50)
+shortDistanceButton.Position = UDim2.new(0.24, 0, 0.05, 0) -- Positioned higher
+shortDistanceButton.Text = "Short Distance"
+shortDistanceButton.TextSize = 14
+shortDistanceButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+shortDistanceButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+shortDistanceButton.BackgroundTransparency = 0.7 -- 70% transparent
+shortDistanceButton.Parent = screenGui
+
+shortDistanceButton.MouseButton1Click:Connect(function()
+    maxLockDistance = maxLockDistanceShort
+    shortDistanceButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Green for active
+    longDistanceButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Red for inactive
+end)
+
+local longDistanceButton = Instance.new("TextButton")
+longDistanceButton.Size = UDim2.new(0, 120, 0, 50)
+longDistanceButton.Position = UDim2.new(0.24, 0, 0.15, 0) -- Positioned lower
+longDistanceButton.Text = "Long Distance"
+longDistanceButton.TextSize = 14
+longDistanceButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+longDistanceButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+longDistanceButton.BackgroundTransparency = 0.7 -- 70% transparent
+longDistanceButton.Parent = screenGui
+
+longDistanceButton.MouseButton1Click:Connect(function()
+    maxLockDistance = maxLockDistanceLong
+    longDistanceButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Green for active
+    shortDistanceButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Red for inactive
+end)local fov = 50 -- Reduced FOV radius for less sensitivity
+local maxLockDistanceShort = 100 -- Short distance to lock onto a target
+local maxLockDistanceLong = 250 -- Long distance to lock onto a target
+local maxLockDistance = maxLockDistanceShort -- Default to short distance
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Players = game:GetService("Players")
+local Cam = game.Workspace.CurrentCamera
+
+-- Initialize FOV ring
+local FOVring = Drawing.new("Circle")
+FOVring.Visible = true
+FOVring.Thickness = 2
+FOVring.Color = Color3.fromRGB(128, 0, 128) -- Purple color
+FOVring.Filled = false
+FOVring.Radius = fov
+FOVring.Position = Cam.ViewportSize / 2
+
+-- Toggle variables
+local isFOVEnabled = true
+local isAimingEnabled = true
+
+local function updateDrawings()
+    if FOVring then
+        FOVring.Position = Cam.ViewportSize / 2
+    end
+end
+
+local function onKeyDown(input)
+    if input.KeyCode == Enum.KeyCode.Delete then
+        RunService:UnbindFromRenderStep("FOVUpdate")
+        FOVring:Remove()
+    end
+end
+
+UserInputService.InputBegan:Connect(onKeyDown)
+
+local function lookAt(target)
+    if target then
+        local lookVector = (target - Cam.CFrame.Position).unit
+        local newCFrame = CFrame.new(Cam.CFrame.Position, Cam.CFrame.Position + lookVector)
+        Cam.CFrame = newCFrame
+    end
+end
+
+local function getClosestPlayerInFOV(trg_part)
+    local nearest = nil
+    local last = math.huge
+    local playerMousePos = Cam.ViewportSize / 2
+
+    for _, player in ipairs(Players:GetPlayers()) do
+        if player ~= Players.LocalPlayer and player.Character then
+            local part = player.Character:FindFirstChild(trg_part)
+            if part then
+                local ePos, isVisible = Cam:WorldToViewportPoint(part.Position)
+                local distance = (Vector2.new(ePos.x, ePos.y) - playerMousePos).Magnitude
+                local worldDistance = (part.Position - Cam.CFrame.Position).Magnitude
+
+                if distance < last and isVisible and distance < fov and worldDistance < maxLockDistance then
+                    last = distance
+                    nearest = player
+                end
+            end
+        end
+    end
+
+    return nearest
+end
+
+RunService.RenderStepped:Connect(function()
+    if isFOVEnabled then
+        updateDrawings()
+        FOVring.Visible = true
+    else
+        FOVring.Visible = false
+    end
+    
+    if isAimingEnabled then
+        local closest = getClosestPlayerInFOV("Head")
+        if closest and closest.Character and closest.Character:FindFirstChild("Head") then
+            lookAt(closest.Character.Head.Position)
+        end
+    end
+end)
+
+-- Create UI for On/Off button
+local screenGui = Instance.new("ScreenGui")
+screenGui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local toggleButton = Instance.new("TextButton")
+toggleButton.Size = UDim2.new(0, 120, 0, 50)
+toggleButton.Position = UDim2.new(0.05, 0, 0.05, 0) -- Positioned higher
+toggleButton.Text = "Disable Aim"
+toggleButton.TextSize = 14
+toggleButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+toggleButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+toggleButton.BackgroundTransparency = 0.7 -- 70% transparent
+toggleButton.Parent = screenGui
+
+toggleButton.MouseButton1Click:Connect(function()
+    isAimingEnabled = not isAimingEnabled
+    if isAimingEnabled then
+        toggleButton.Text = "Disable Aim"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Green for enabled
+    else
+        toggleButton.Text = "Enable Aim"
+        toggleButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Red for disabled
+    end
+end)
+
+-- Create UI for Distance buttons
+local shortDistanceButton = Instance.new("TextButton")
+shortDistanceButton.Size = UDim2.new(0, 120, 0, 50)
+shortDistanceButton.Position = UDim2.new(0.24, 0, 0.05, 0) -- Positioned higher
+shortDistanceButton.Text = "Short Distance"
+shortDistanceButton.TextSize = 14
+shortDistanceButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+shortDistanceButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+shortDistanceButton.BackgroundTransparency = 0.7 -- 70% transparent
+shortDistanceButton.Parent = screenGui
+
+shortDistanceButton.MouseButton1Click:Connect(function()
+    maxLockDistance = maxLockDistanceShort
+    shortDistanceButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Green for active
+    longDistanceButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Red for inactive
+end)
+
+local longDistanceButton = Instance.new("TextButton")
+longDistanceButton.Size = UDim2.new(0, 120, 0, 50)
+longDistanceButton.Position = UDim2.new(0.24, 0, 0.15, 0) -- Positioned lower
+longDistanceButton.Text = "Long Distance"
+longDistanceButton.TextSize = 14
+longDistanceButton.BackgroundColor3 = Color3.fromRGB(70, 70, 70)
+longDistanceButton.TextColor3 = Color3.fromRGB(255, 255, 255)
+longDistanceButton.BackgroundTransparency = 0.7 -- 70% transparent
+longDistanceButton.Parent = screenGui
+
+longDistanceButton.MouseButton1Click:Connect(function()
+    maxLockDistance = maxLockDistanceLong
+    longDistanceButton.BackgroundColor3 = Color3.fromRGB(0, 255, 0) -- Green for active
+    shortDistanceButton.BackgroundColor3 = Color3.fromRGB(255, 0, 0) -- Red for inactive
+end)
